@@ -804,6 +804,36 @@ def test_anonymous_git_drops_ambient_auth_and_config(
         handler.cleanup()
 
 
+@pytest.mark.parametrize("allow_git_credentials", [True, False])
+@pytest.mark.parametrize("operation", ["_clone_git", "_list_remote_refs"])
+def test_git_subprocesses_never_inherit_stdin(operation: str, allow_git_credentials: bool) -> None:
+    """Git must not inherit our stdin.
+
+    Under the MCP stdio transport stdin is the JSON-RPC pipe; on Windows a Git
+    child that inherits it can hang at startup until the ingest deadline.
+    """
+    handler = InputHandler(allow_git_credentials=allow_git_credentials)
+    calls: list[dict] = []
+
+    def fake_git(command: list[str], **kwargs: object) -> SimpleNamespace:
+        calls.append(kwargs)
+        if "clone" in command:
+            Path(command[-1]).mkdir(parents=True)
+        return SimpleNamespace(poll=lambda: 0, returncode=0, stdout=b"abc\trefs/heads/main\n")
+
+    try:
+        with (
+            patch.object(handler, "_validate_url_host", return_value="github.com"),
+            patch("skillspector.input_handler.subprocess.Popen", side_effect=fake_git),
+            patch("skillspector.input_handler.subprocess.run", side_effect=fake_git),
+        ):
+            getattr(handler, operation)("https://github.com/org/public.git")
+        assert len(calls) == 1
+        assert calls[0]["stdin"] is subprocess.DEVNULL
+    finally:
+        handler.cleanup()
+
+
 @pytest.mark.parametrize("operation", ["_clone_git", "_list_remote_refs"])
 @pytest.mark.parametrize(
     "target",

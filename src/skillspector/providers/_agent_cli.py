@@ -789,6 +789,8 @@ def _claude_auth_check(binary: str) -> tuple[bool, str | None]:
     try:
         result = subprocess.run(
             [binary, "auth", "status"],
+            # Never inherit an MCP stdio pipe as the probe's stdin.
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             shell=False,
             timeout=15,
@@ -838,6 +840,7 @@ def _opencode_auth_check(binary: str) -> tuple[bool, str | None]:
             child_env = _prepare_opencode_env(_scrub_env(), tmp_root, policy_argv)
             version_result = subprocess.run(
                 [binary, "--version"],
+                stdin=subprocess.DEVNULL,
                 capture_output=True,
                 shell=False,
                 timeout=15,
@@ -855,6 +858,7 @@ def _opencode_auth_check(binary: str) -> tuple[bool, str | None]:
                 )
             result = subprocess.run(
                 [binary, "auth", "list"],
+                stdin=subprocess.DEVNULL,
                 capture_output=True,
                 shell=False,
                 timeout=15,

@@ -1221,6 +1221,9 @@ class InputHandler:
         try:
             process = subprocess.run(
                 [*git_argv, "ls-remote", repository_url],
+                # Never inherit our stdin: under the MCP stdio transport it is the
+                # JSON-RPC pipe, and on Windows Git can block on it at startup.
+                stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
                 timeout=timeout,
@@ -1312,6 +1315,9 @@ class InputHandler:
         try:
             process = subprocess.Popen(
                 clone_command,
+                # See _list_remote_refs: an inherited MCP stdio pipe can hang Git
+                # on Windows until the ingest deadline expires.
+                stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 shell=False,

@@ -374,6 +374,7 @@ class TestScrubEnv:
         assert run.call_args.kwargs["env"] == runtime
         assert run.call_args.kwargs["shell"] is False
         assert run.call_args.kwargs["timeout"] == 15
+        assert run.call_args.kwargs["stdin"] is subprocess.DEVNULL
 
     @pytest.mark.parametrize("binary_name", ["claude", "gemini"])
     @pytest.mark.parametrize("lowercase", [False, True])
